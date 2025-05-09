@@ -1,0 +1,187 @@
+---
+title: "ez is..."
+author: "Kofrán Dániel"
+date: '2020 05 17 '
+output: html_document
+---
+
+
+```{r}
+library(readr)
+library(dplyr)
+#Terbeli autokorrelacio
+library(spdep)
+#Terbeli autoregresszio
+library(spatialreg)
+#VIF
+library(car)
+#skew,kurtosis
+library(moments)
+
+#ökó beszámolóból
+library(haven)
+library(rmarkdown)
+library(lmtest)
+library(ggplot2)
+library(stargazer)
+
+#stepAIC
+library(tidyverse)
+library(caret)
+library(leaps)
+library(MASS)
+```
+
+
+
+############# STARGAZER ÚJRACSINÁLÁS TRÜKKÖK: 
+decimal.mark = ","
+add.stat = "aic",
+
+
+
+
+```{r}
+summary(nullmodell_stepAIC_1 <- lm(data=tiszt@data, log(deceduti)~`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati))
+summary(nullmodell_stepAIC_2 <- lm(data=tiszt@data, log(deceduti)~Eszak + ferfi_noi_arany + casi_testati))
+summary(nullmodell_stepAIC_3 <- lm(data=tiszt@data, log(deceduti)~`persons  at least two chronic disease` + Eszak + ferfi_noi_arany + casi_testati))
+```
+
+
+```{r}
+resettest(terreg_1)
+```
+
+
+```{r}
+summary(terreg__vegleges_dani <- lagsarlm(log(deceduti)~`persons  at least two chronic disease` + Eszak + ferfi_noi_arany + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+
+summary(terreg_stepAIC_1 <- lagsarlm(log(deceduti)~`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+
+summary(terreg_stepAIC_2 <- lagsarlm(log(deceduti)~Eszak + ferfi_noi_arany + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+```
+
+
+
+
+
+```{r}
+setwd("C:/Rajk/Szakdolgozat/tablazatok")
+stargazer(vegleges_modell_dani,terreg__vegleges_dani, nullmodell_stepAIC_1, terreg_stepAIC_1, nullmodell_stepAIC_2, terreg_stepAIC_2,
+          dep.var.labels = "A halálozások számának logaritmusa",
+          column.labels = c("Önálló modell","Önálló modell","Stepwise 1","Stepwise 1","Stepwise 2","Stepwise 2"),
+          covariate.labels = c("2 vagy több krónikus betegséggel élők", "Férfi-női arány", "Észak", "Összes tesztelt ember"),          
+          style = "qje",
+          title="Végleges regressziók Térbeli autoregresszióval", type="text", out = "proba",
+          add.stat = "aic",
+          omit.stat = c("ll","ser","f"),          
+          df=FALSE, digits=4)
+```
+
+
+
+
+
+```{r}
+summary(terreg_stepAIC_1 <- lagsarlm(log(deceduti)~`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Lombardia nélkül
+
+```{r}
+tiszt_minusz_lombardia <- tiszt
+tiszt_minusz_lombardia@data<-tiszt_minusz_lombardia@data[!(tiszt_minusz_lombardia@data$codice_regione=="03"),]
+view(tiszt_minusz_lombardia@data)
+```
+
+```{r}
+summary(nullmodell_stepAIC_2_minusz_lombardia <- lm(data=tiszt_minusz_lombardia@data, log(deceduti)~Eszak + ferfi_noi_arany + casi_testati))
+```
+
+```{r}
+summary(nullmodell_jo_3_lomb <- lm(data=tiszt_minusz_lombardia@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +   Eszak + casi_testati))
+```
+
+```{r}
+stepAIC(nullmodell_jo_3_lomb)
+```
+
+```{r}
+summary(lm(formula = log(deceduti) ~ `persons aged 11 years and over who consume bitter drinks` + 
+    `persons  at least two chronic disease` + ferfi_noi_arany + 
+    casi_testati, data = tiszt_minusz_lombardia@data))
+
+summary(lm(formula = log(deceduti) ~ `persons aged 11 years and over who consume bitter drinks` + 
+    `persons  at least two chronic disease` + ferfi_noi_arany 
+    , data = tiszt_minusz_lombardia@data))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

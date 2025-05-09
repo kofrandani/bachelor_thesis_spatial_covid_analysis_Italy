@@ -1,0 +1,557 @@
+---
+title: "Szakdolgozathoz"
+author: "Kofrán Dániel"
+date: '2020 05 16 '
+output: html_document
+---
+
+```{r}
+library(readr)
+library(dplyr)
+#Terbeli autokorrelacio
+library(spdep)
+#Terbeli autoregresszio
+library(spatialreg)
+#VIF
+library(car)
+#skew,kurtosis
+library(moments)
+
+#ökó beszámolóból
+library(haven)
+library(rmarkdown)
+library(lmtest)
+library(ggplot2)
+library(stargazer)
+
+#stepAIC
+library(tidyverse)
+library(caret)
+library(leaps)
+library(MASS)
+```
+
+```{r}
+ls(tiszt@data)
+```
+
+## A nullmodell(ek)
+
+```{r}
+summary(nullmodell_1 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume wine` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +  atlageletkor + Eszak + casi_testati))
+
+summary(nullmodell_2 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +  atlageletkor + Eszak + casi_testati))
+
+summary(nullmodell_3 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume spirits` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +  atlageletkor+ Eszak + casi_testati))
+
+summary(nullmodell_4 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume wine` + `persons aged 11 years and over who consume bitter drinks` + `persons aged 11 years and over who consume spirits` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +  atlageletkor+ Eszak + casi_testati))
+
+```
+
+## VIF-ek
+
+```{r}
+vif_1 <- vif(nullmodell_1)
+vif_2 <- vif(nullmodell_2)
+vif_3 <- vif(nullmodell_3)
+vif_4 <- vif(nullmodell_4)
+
+vif_1
+vif_2
+vif_3
+vif_4
+
+AIC(nullmodell_2)
+
+```
+
+
+```{r}
+```
+5 százalékos szignifikanciaszint mellett
+
+```{r}
+setwd("C:/Rajk/Szakdolgozat/tablazatok")
+stargazer(nullmodell_1,nullmodell_2,nullmodell_3,nullmodell_4,
+          dep.var.labels = "A halálozások számának logaritmusa",
+          column.labels = c("nullmodell","nullmodell","nullmodell","nullmodell"),
+          covariate.labels = c("Egy lakosra jutó naponta elszívott cigaretta", "Borfogyasztás", "Likőr fogyasztás", "Egyéb szeszesital-fogyasztás", "Túlsúlyos vagy elhízott","2 vagy több krónikus betegséggel élők", "Népsűrűség", "Férfi-női arány", "Átlagéletkor", "Észak", "Összes tesztelt ember"),
+          style = "qje",
+          title="Regressziós eredmények", type="text", out = "nullmodell_valaszto_harom_szamjegy",
+          notes        = "Sometimes you just have to start over.", 
+          notes.append = FALSE,         
+          df=FALSE, digits=3)
+```
+
+
+
+```{r}
+stargazer(nullmodell_3,terreg_elhizas_2,header=FALSE, type='text',
+ci = T,title = "Spatially autoregressive models",style = "qje",
+column.labels = c("Error Model", "Lag Model", "Durbin Lag Model"))
+
+```
+
+
+## A végleges nullmodell a nullmodell_2 lett
+
+```{r}
+vif_2
+resettest(nullmodell_2)
+```
+
+
+
+```{r}
+#summary(nullmodell_jo_1 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +  atlageletkor + Eszak + casi_testati))
+#summary(nullmodell_jo_1_5 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany  + Eszak + casi_testati))
+#summary(nullmodell_jo_2 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany  + Eszak + casi_testati))
+#summary(nullmodell_jo_3 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease` + ferfi_noi_arany +   Eszak + casi_testati))
+summary(nullmodell_jo_4 <- lm(data=tiszt@data, log(deceduti)~  `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease` + ferfi_noi_arany +   Eszak + casi_testati))
+summary(nullmodell_jo_5 <- lm(data=tiszt@data, log(deceduti)~  `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease` + ferfi_noi_arany + casi_testati))
+summary(nullmodell_jo_6 <- lm(data=tiszt@data, log(deceduti)~  egy_lakosra_juto_napi_cigi +`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati))
+#summary(nullmodell_jo_7 <- lm(data=tiszt@data, log(deceduti)~  ferfi_noi_arany +   Eszak + casi_testati))
+vif(nullmodell_jo_1)
+vif(nullmodell_jo_1_5)
+vif(nullmodell_jo_2)
+vif(nullmodell_jo_3)
+vif(nullmodell_jo_4)
+vif(nullmodell_jo_5)
+
+```
+```{r}
+#summary(nullmodell_jo_1 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +  atlageletkor + Eszak + casi_testati))
+#summary(nullmodell_jo_1_5 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `obese or overweight` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany  + Eszak + casi_testati))
+#summary(nullmodell_jo_2 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany  + Eszak + casi_testati))
+#summary(nullmodell_jo_3 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease` + ferfi_noi_arany +   Eszak + casi_testati))
+summary(nullmodell_jo_4 <- lm(data=tiszt@data, log(deceduti)~  `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease` + ferfi_noi_arany +   Eszak + casi_testati))
+summary(nullmodell_jo_5 <- lm(data=tiszt@data, log(deceduti)~ `persons  at least two chronic disease` + ferfi_noi_arany + Eszak + casi_testati))
+summary(nullmodell_jo_6 <- lm(data=tiszt@data, log(deceduti)~  egy_lakosra_juto_napi_cigi +`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati))
+#summary(nullmodell_jo_7 <- lm(data=tiszt@data, log(deceduti)~  ferfi_noi_arany +   Eszak + casi_testati))
+vif(nullmodell_jo_1)
+vif(nullmodell_jo_1_5)
+vif(nullmodell_jo_2)
+vif(nullmodell_jo_3)
+vif(nullmodell_jo_4)
+vif(nullmodell_jo_5)
+
+```
+
+```{r}
+summary(vegleges_modell_dani <- lm(data=tiszt@data, log(deceduti)~ `persons  at least two chronic disease` + ferfi_noi_arany + Eszak + casi_testati))
+```
+
+
+
+
+
+
+
+
+
+```{r}
+bptest(vegleges_modell_dani)
+```
+
+
+```{r}
+AIC(vegleges_modell_dani)
+```
+
+
+
+
+#Legjobb adj.R^2 alapján
+
+```{r}
+summary(nullmodell_jo_3 <- lm(data=tiszt@data, log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +   Eszak + casi_testati))
+vif(nullmodell_jo_3)
+bptest(nullmodell_jo_3)
+```
+
+
+```{r}
+
+summary(vegleges_modell_dani)#  A modell egészének relevanciáját F-próbával határozzuk meg, ennek értéke 110,2. A próbához tartozó p-érték közel 0 A próba esetén a nullhipotézis kimondja, hogy a regressziós modellben nincsen szignifikáns változó, ezt a p-érték alapján elvethetjük. A modellünk tehát tartalmaz legalább egy szignifikáns változót, azaz releváns
+
+resettest(vegleges_modell_dani, power = 2:3) #Mivel még 10%-os szignifikanciaszinten sem tudjuk elutasítani a nulllhipotézist, ezért a modellünk specifikációja jónak tekinthető (azaz például semmilyen kvadratikus vagy kubikus alak bevonására nincsen szükség).
+
+bptest(vegleges_modell_dani) #1%-os szignifikanciaszinten nem tudjuk elutasítani a nulllhipotézist, azaz a modellünk homoszkedasztikus.
+#If the test statistic has a p-value below an appropriate threshold (e.g. p < 0.05) then the null hypothesis of homoskedasticity is rejected and heteroskedasticity assumed.
+
+vif(vegleges_modell_dani) #A VIF-mutatók alapján kijelenthető, hogy nincsen jelen a modellben káros, de még csak zavaró mértékű multikollinearitás sem Az egyetlen kivétel ezalól az ESCS mutató értéke, amely 4,82-es értéket vesz fel eredetileg, azonban a szabadságfokokkal történő súlyozás után ennek az értéke is 2 körülire csökken (2,2), míg a többi változó VIF-mutatóinak értéke rendre 2 alatti értékeket vesz fel. Ezek alapján kijelenthető, hogy a multikollinearitás hatására a parciális regressziós együtthatók értékei nem vállnak instabbillá, és nem is nehezíti meg a legmegfelelőbb modell kiválasztását.
+
+AIC(vegleges_modell_dani)
+
+
+plot(vegleges_modell_dani)
+```
+
+
+
+
+
+## AKAIKE információs kritérium alapján
+
+```{r}
+stepAIC(nullmodell_jo_1)
+```
+
+
+## SCHWARZ információs kritérium alapján
+
+
+```{r}
+stepAIC(nullmodell_jo_1)
+```
+
+
+
+```{r}
+summary(nullmodell_stepAIC <- lm(data=tiszt@data, log(deceduti)~`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati))
+summary(nullmodell_stepAIC_2 <- lm(data=tiszt@data, log(deceduti)~Eszak + ferfi_noi_arany + casi_testati))
+summary(nullmodell_stepAIC_3 <- lm(data=tiszt@data, log(deceduti)~`persons  at least two chronic disease` + Eszak + ferfi_noi_arany + casi_testati))
+
+AIC(nullmodell_stepAIC)
+AIC(nullmodell_stepAIC_2)
+AIC(nullmodell_stepAIC_3)
+
+```
+
+
+
+
+
+######################### ITTEN VAN ÁM MINDEN JÓ
+
+```{r}
+
+summary(nullmodell_jo_3)#  A modell egészének relevanciáját F-próbával határozzuk meg, ennek értéke 110,2. A próbához tartozó p-érték közel 0 A próba esetén a nullhipotézis kimondja, hogy a regressziós modellben nincsen szignifikáns változó, ezt a p-érték alapján elvethetjük. A modellünk tehát tartalmaz legalább egy szignifikáns változót, azaz releváns
+
+resettest(nullmodell_jo_3, power = 2:3) #Mivel még 10%-os szignifikanciaszinten sem tudjuk elutasítani a nulllhipotézist, ezért a modellünk specifikációja jónak tekinthető (azaz például semmilyen kvadratikus vagy kubikus alak bevonására nincsen szükség).
+
+bptest(nullmodell_jo_3) #1%-os szignifikanciaszinten nem tudjuk elutasítani a nulllhipotézist, azaz a modellünk homoszkedasztikus.
+#If the test statistic has a p-value below an appropriate threshold (e.g. p < 0.05) then the null hypothesis of homoskedasticity is rejected and heteroskedasticity assumed.
+
+vif(nullmodell_jo_3) #A VIF-mutatók alapján kijelenthető, hogy nincsen jelen a modellben káros, de még csak zavaró mértékű multikollinearitás sem Az egyetlen kivétel ezalól az ESCS mutató értéke, amely 4,82-es értéket vesz fel eredetileg, azonban a szabadságfokokkal történő súlyozás után ennek az értéke is 2 körülire csökken (2,2), míg a többi változó VIF-mutatóinak értéke rendre 2 alatti értékeket vesz fel. Ezek alapján kijelenthető, hogy a multikollinearitás hatására a parciális regressziós együtthatók értékei nem vállnak instabbillá, és nem is nehezíti meg a legmegfelelőbb modell kiválasztását.
+
+AIC(nullmodell_jo_3)
+
+
+plot(nullmodell_jo_3)
+```
+
+```{r}
+
+summary(nullmodell_stepAIC)#  A modell egészének relevanciáját F-próbával határozzuk meg, ennek értéke 110,2. A próbához tartozó p-érték közel 0 A próba esetén a nullhipotézis kimondja, hogy a regressziós modellben nincsen szignifikáns változó, ezt a p-érték alapján elvethetjük. A modellünk tehát tartalmaz legalább egy szignifikáns változót, azaz releváns
+
+resettest(nullmodell_stepAIC, power = 2:3) #Mivel még 10%-os szignifikanciaszinten sem tudjuk elutasítani a nulllhipotézist, ezért a modellünk specifikációja jónak tekinthető (azaz például semmilyen kvadratikus vagy kubikus alak bevonására nincsen szükség).
+
+bptest(nullmodell_stepAIC) #1%-os szignifikanciaszinten nem tudjuk elutasítani a nulllhipotézist, azaz a modellünk homoszkedasztikus.
+#If the test statistic has a p-value below an appropriate threshold (e.g. p < 0.05) then the null hypothesis of homoskedasticity is rejected and heteroskedasticity assumed.
+
+vif(nullmodell_stepAIC) #A VIF-mutatók alapján kijelenthető, hogy nincsen jelen a modellben káros, de még csak zavaró mértékű multikollinearitás sem Az egyetlen kivétel ezalól az ESCS mutató értéke, amely 4,82-es értéket vesz fel eredetileg, azonban a szabadságfokokkal történő súlyozás után ennek az értéke is 2 körülire csökken (2,2), míg a többi változó VIF-mutatóinak értéke rendre 2 alatti értékeket vesz fel. Ezek alapján kijelenthető, hogy a multikollinearitás hatására a parciális regressziós együtthatók értékei nem vállnak instabbillá, és nem is nehezíti meg a legmegfelelőbb modell kiválasztását.
+
+AIC(nullmodell_stepAIC)
+
+
+plot(nullmodell_stepAIC)
+```
+
+```{r}
+
+summary(nullmodell_stepAIC_2)#  A modell egészének relevanciáját F-próbával határozzuk meg, ennek értéke 110,2. A próbához tartozó p-érték közel 0 A próba esetén a nullhipotézis kimondja, hogy a regressziós modellben nincsen szignifikáns változó, ezt a p-érték alapján elvethetjük. A modellünk tehát tartalmaz legalább egy szignifikáns változót, azaz releváns
+
+resettest(nullmodell_stepAIC_2, power = 2:3) #Mivel még 10%-os szignifikanciaszinten sem tudjuk elutasítani a nulllhipotézist, ezért a modellünk specifikációja jónak tekinthető (azaz például semmilyen kvadratikus vagy kubikus alak bevonására nincsen szükség).
+
+bptest(nullmodell_stepAIC_2) #1%-os szignifikanciaszinten nem tudjuk elutasítani a nulllhipotézist, azaz a modellünk homoszkedasztikus.
+#If the test statistic has a p-value below an appropriate threshold (e.g. p < 0.05) then the null hypothesis of homoskedasticity is rejected and heteroskedasticity assumed.
+
+vif(nullmodell_stepAIC_2) #A VIF-mutatók alapján kijelenthető, hogy nincsen jelen a modellben káros, de még csak zavaró mértékű multikollinearitás sem Az egyetlen kivétel ezalól az ESCS mutató értéke, amely 4,82-es értéket vesz fel eredetileg, azonban a szabadságfokokkal történő súlyozás után ennek az értéke is 2 körülire csökken (2,2), míg a többi változó VIF-mutatóinak értéke rendre 2 alatti értékeket vesz fel. Ezek alapján kijelenthető, hogy a multikollinearitás hatására a parciális regressziós együtthatók értékei nem vállnak instabbillá, és nem is nehezíti meg a legmegfelelőbb modell kiválasztását.
+
+AIC(nullmodell_stepAIC_2)
+
+
+plot(nullmodell_stepAIC_2)
+```
+
+```{r}
+
+summary(nullmodell_stepAIC_3)#  A modell egészének relevanciáját F-próbával határozzuk meg, ennek értéke 110,2. A próbához tartozó p-érték közel 0 A próba esetén a nullhipotézis kimondja, hogy a regressziós modellben nincsen szignifikáns változó, ezt a p-érték alapján elvethetjük. A modellünk tehát tartalmaz legalább egy szignifikáns változót, azaz releváns
+
+resettest(nullmodell_stepAIC_3, power = 2:3) #Mivel még 10%-os szignifikanciaszinten sem tudjuk elutasítani a nulllhipotézist, ezért a modellünk specifikációja jónak tekinthető (azaz például semmilyen kvadratikus vagy kubikus alak bevonására nincsen szükség).
+
+bptest(nullmodell_stepAIC_3) #1%-os szignifikanciaszinten nem tudjuk elutasítani a nulllhipotézist, azaz a modellünk homoszkedasztikus.
+#If the test statistic has a p-value below an appropriate threshold (e.g. p < 0.05) then the null hypothesis of homoskedasticity is rejected and heteroskedasticity assumed.
+
+vif(nullmodell_stepAIC_3) #A VIF-mutatók alapján kijelenthető, hogy nincsen jelen a modellben káros, de még csak zavaró mértékű multikollinearitás sem Az egyetlen kivétel ezalól az ESCS mutató értéke, amely 4,82-es értéket vesz fel eredetileg, azonban a szabadságfokokkal történő súlyozás után ennek az értéke is 2 körülire csökken (2,2), míg a többi változó VIF-mutatóinak értéke rendre 2 alatti értékeket vesz fel. Ezek alapján kijelenthető, hogy a multikollinearitás hatására a parciális regressziós együtthatók értékei nem vállnak instabbillá, és nem is nehezíti meg a legmegfelelőbb modell kiválasztását.
+
+AIC(nullmodell_stepAIC_3)
+
+
+plot(nullmodell_stepAIC_3)
+```
+
+#####################################################xx
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+summary(terreg_jo_3 <- lagsarlm(log(deceduti)~ egy_lakosra_juto_napi_cigi+ `persons aged 11 years and over who consume bitter drinks` + `persons  at least two chronic disease`+ nepsuruseg + ferfi_noi_arany +   Eszak + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+
+summary(terreg_kezzel_keszitett <- lagsarlm(log(deceduti)~  `persons aged 11 years and over who consume bitter drinks`  + `persons  at least two chronic disease` + ferfi_noi_arany  + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+
+summary(terreg_stepAIC <- lagsarlm(log(deceduti)~`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+
+summary(terreg_stepAIC_2 <- lagsarlm(log(deceduti)~Eszak + ferfi_noi_arany + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+
+summary(terreg_stepAIC_3 <- lagsarlm(log(deceduti)~`persons  at least two chronic disease` + Eszak + ferfi_noi_arany + casi_testati, data=tiszt@data, listw=szomszedlista_olaszo_k4))
+```
+
+
+
+
+
+setwd("C:/Rajk/Szakdolgozat/tablazatok")
+stargazer(nullmodell_1,nullmodell_2,nullmodell_3,nullmodell_4,
+          dep.var.labels = "A halálozások számának logaritmusa",
+          column.labels = c("nullmodell","nullmodell","nullmodell","nullmodell"),
+          covariate.labels = c("Egy lakosra jutó naponta elszívott cigaretta", "Borfogyasztás", "Likőr fogyasztás", "Egyéb szeszesital-fogyasztás", "Túlsúlyos vagy elhízott","2 vagy több krónikus betegséggel élők", "Népsűrűség", "Férfi-női arány", "Átlagéletkor", "Észak", "Összes tesztelt ember"),
+          style = "qje",
+          title="Regressziós eredmények", type="text", out = "nullmodell_valaszto_harom_szamjegy",
+          notes        = "Sometimes you just have to start over.", 
+          notes.append = FALSE,         
+          df=FALSE, digits=3)
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+
+```{r}
+summary(nullmodell_stepAIC_1 <- lm(data=tiszt@data, log(deceduti)~`persons  at least two chronic disease` + ferfi_noi_arany + casi_testati))
+summary(nullmodell_stepAIC_2 <- lm(data=tiszt@data, log(deceduti)~Eszak + ferfi_noi_arany + casi_testati))
+summary(nullmodell_stepAIC_3 <- lm(data=tiszt@data, log(deceduti)~`persons  at least two chronic disease` + Eszak + ferfi_noi_arany + casi_testati))
+
+AIC(nullmodell_stepAIC)
+AIC(nullmodell_stepAIC_2)
+AIC(nullmodell_stepAIC_3)
+
+```
+
+
+
+```{r}
+vegleges_modell_dani$AIC <- AIC(vegleges_modell_dani)
+nullmodell_stepAIC_1$AIC <- AIC(nullmodell_stepAIC_1)
+nullmodell_stepAIC_2$AIC <- AIC(nullmodell_stepAIC_2)
+
+stargazer(model1, model2, type="text", report="vc", header=FALSE,
+          title="Linear Models Predicting Forest Land",
+          keep.stat=c("aic", "rsq", "n"), omit.table.layout="n")
+```
+
+
+#########################################################################################       STAR GÉZA
+#########################################################################################       STAR GÉZA
+
+```{r}
+setwd("C:/Rajk/Szakdolgozat/tablazatok")
+stargazer(vegleges_modell_dani,nullmodell_stepAIC_1,nullmodell_stepAIC_2,
+          dep.var.labels = "A halálozások számának logaritmusa",
+          column.labels = c("Önálló modell","Stepwise 1","Stepwise 2"),
+          covariate.labels = c("2 vagy több krónikus betegséggel élők", "Férfi-női arány", "Észak", "Összes tesztelt ember"),          
+          style = "qje",
+          title="Végleges regressziók", type="text", out = "proba",
+          add.stat = "aic",
+          df=FALSE, digits=4)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####################################xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx##############################x
+```{r}
+?pearson.test
+```
+
+```{r}
+library(rgdal)
+library (spdep)
+```
+
+```{r}
+tiszt$lmresid <- residuals(nullmodell_stepAIC_3)
+lm.palette <- colorRampPalette(c("white","orange", "red"), space = "rgb")
+spplot(tiszt, zcol="lmresid", col.regions=lm.palette(20), main="Resid")
+```
+
+#Furcsaság, rossz
+
+```{r}
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+step.model <- train(log(deceduti) ~., data = tiszt@data,
+                    method = "leapSeq", 
+                    tuneGrid = data.frame(nvmax = 1:10),
+                    trControl = train.control
+                    )
+step.model$results
+summary(step.model$finalModel)
+coef(step.model$finalModel, 5)
+```
+
+
+#Egy intuitív jó
+
+```{r}
+summary(ols_elhizas_2)
+```
